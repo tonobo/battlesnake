@@ -1,5 +1,6 @@
 /.bundle/
 /vendor/bundle/
+*.swp
 /.yardoc
 /_yardoc/
 /coverage/
