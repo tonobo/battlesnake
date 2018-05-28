@@ -64,7 +64,6 @@ module Battlesnake
                 world.blocked(x[1], ignore: ignore) || points.count(x[1]) > 1
               end
             end
-            >>>>>>> Stashed changes
             if ret.first.nil?
               moves << :unresolved
               possibilities << moves
