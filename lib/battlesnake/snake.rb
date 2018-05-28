@@ -19,7 +19,7 @@ module Battlesnake
     end
 
     def blocked(pos, ignore: nil)
-      points.each.with_index do |x,i|
+      points[0..-2].each.with_index do |x,i|
         return :head if i.zero? && pos == x 
         return :body if pos == x
       end
