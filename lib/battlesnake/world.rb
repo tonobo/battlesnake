@@ -6,15 +6,15 @@ module Battlesnake
       @id, @width, @height = id, width, height
     end
 
-    def blocked(pos)
-      return :map_x unless pos[0].between?((width+-1)*-1, -1)
-      return :map_y unless pos[1].between?((height+-1)*-1, -1) 
+    def blocked(pos, ignore: nil)
+      return :map_x unless pos[0].between?((width+-1)*-1, 0)
+      return :map_y unless pos[1].between?((height+-1)*-1, 0) 
+      snakes.to_a.each do |s|
+        b = s.blocked(pos, ignore: ignore)
+        return b if b
+      end
       foods.to_a.each do |f|
         return :food if f.pos == pos
-      end
-      snakes.to_a.each do |s|
-        b = s.blocked(pos)
-        return b if b
       end
       return
     end
@@ -60,9 +60,12 @@ module Battlesnake
         @snakes = new_snakes
         return
       end
+      @snakes.keep_if do |snake|
+        new_snakes.find{|x| x.id == snake.id }
+      end
       @snakes.each do |snake|
         s = new_snakes.find{|x| x.id == snake.id }
-        raise "Snake not found #{snake.inspect}" if s.nil?
+        next if s.nil?
         snake.update(health: s.health, points: s.points)
       end
     end

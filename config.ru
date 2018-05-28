@@ -17,9 +17,8 @@ class App < Roda
     
     r.post "move" do
       a = JSON.parse(request.body.read)
-      if $world.nil?
-	$world = Battlesnake::World.new(id: a['id'], width: a['width'], height: a['height'])
-      end
+      puts a.to_json
+      $world = Battlesnake::World.new(id: a['id'], width: a['width'], height: a['height'])
       $world.update_food a.dig('food', 'data').to_a.map{|h| SnakePos[h['x']*-1, h['y']*-1]}
       $world.update_snakes a.dig('snakes', 'data')
       $world.update_snake a['you']
@@ -33,7 +32,7 @@ class App < Roda
       {
         color: COLOR.call,
         secondary_color: COLOR.call,
-        head_url: "https://avatars1.githubusercontent.com/u/310475?s=100&v=4",
+        head_url: "https://avatars1.githubusercontent.com/u/6775896?s=460&v=4",
         taunt: "My Snake v1",
         head_type: HEADS.sample,
         tail_type: TAILS.sample

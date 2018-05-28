@@ -21,9 +21,13 @@ class SnakePos < Vector
     case direction
     when :up then SnakePos[self[0], self[1] + 1]
     when :down then SnakePos[self[0], self[1] - 1]
-    when :left then SnakePos[self[0] - 1, self[1]]
-    when :right then SnakePos[self[0] + 1, self[1]]
+    when :right then SnakePos[self[0] - 1, self[1]]
+    when :left then SnakePos[self[0] + 1, self[1]]
     end
+  end
+
+  def around
+    %i[up down left right].map{|x| move(x)}
   end
 
   def direction
