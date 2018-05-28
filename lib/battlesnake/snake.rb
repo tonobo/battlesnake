@@ -94,7 +94,7 @@ module Battlesnake
         if a.empty? and ignore.nil?
           return	      move(ignore: :possible_next_head)
         end
-        a[0][0]
+        a.find{|x| b = world.blocked(head.move(x[0])); b.nil? || b == :food }&.first || a[0][0]
       end
 
       def update(health:, points:)
