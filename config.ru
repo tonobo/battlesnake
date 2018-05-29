@@ -1,12 +1,16 @@
 require "roda"
 require "json"
 require "battlesnake"
+require 'prometheus/middleware/collector'
+require 'prometheus/middleware/exporter'
 
 HEADS = %w[bendr dead fang pixel regular safe sand-worm shades smile tongue]
 TAILS = %w[block-bum curled fat-rattle freckled pixel regular round-bum skinny small-rattle]
 COLOR = Proc.new{ "#%06x" % (rand * 0xffffff) }
 
-$world = nil
+use Rack::Deflater
+use Prometheus::Middleware::Collector
+use Prometheus::Middleware::Exporter
 
 class App < Roda
   route do |r|
@@ -18,11 +22,11 @@ class App < Roda
     r.post "move" do
       a = JSON.parse(request.body.read)
       puts a.to_json
-      $world = Battlesnake::World.new(id: a['id'], width: a['width'], height: a['height'])
-      $world.update_food a.dig('food', 'data').to_a.map{|h| SnakePos[h['x']*-1, h['y']*-1]}
-      $world.update_snakes a.dig('snakes', 'data')
-      $world.update_snake a['you']
-      a = $world.snake.move.to_s
+      world = Battlesnake::World.new(id: a['id'], width: a['width'], height: a['height'])
+      world.update_food a.dig('food', 'data').to_a.map{|h| SnakePos[h['x']*-1, h['y']*-1]}
+      world.update_snakes a.dig('snakes', 'data')
+      world.update_snake a['you']
+      a = world.snake.move.to_s
       {move: a}.to_json
     end
     

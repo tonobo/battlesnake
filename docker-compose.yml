@@ -1,0 +1,46 @@
+version: '3'
+
+networks:
+  snake:
+
+volumes:
+  prom:
+  grafana:
+  caddy:
+
+services:
+  grafana:
+    image: grafana/grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_NAME: "anon"
+    restart: always
+    networks: [snake]
+    volumes: 
+      - grafana:/var/lib/grafana
+
+  prometheus:
+    image: prom/prometheus
+    restart: always
+    networks: [snake]
+    volumes:
+      - ./.prometheus.yml:/prometheus.yml
+      - prom:/prometheus
+    command: --config.file=/prometheus.yml --storage.tsdb.retention=4w
+
+  battlesnake:
+    build: ./
+    restart: always
+    networks: [snake]
+  
+  caddy:
+    image: abiosoft/caddy
+    restart: always
+    networks: [snake]
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./.caddyfile:/etc/Caddyfile 
+      - caddy:/root/.caddy # SSL Certs
+    command: ["--conf", "/etc/Caddyfile", "--log", "stdout", "--agree"]
+    

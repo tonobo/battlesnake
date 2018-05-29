@@ -1,0 +1,11 @@
+snake.muh.io {
+	proxy / battlesnake:9292 {
+          transparent
+        }
+}
+
+snake-graphs.muh.io {
+	proxy / grafana:3000 {
+          transparent
+        }
+}
