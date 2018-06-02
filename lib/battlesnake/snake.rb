@@ -5,91 +5,69 @@ module Battlesnake
     def initialize(id:, points:, world:, health:)
       @id, @points, @world = id, points, world
       @health = health
+      fill_vmap
     end
 
-    def last_move
-      if points_before.nil?
-        return %i[up down left right].sample
-      end
-      (points_before.first - points.first).direction
-    end
-
-    def valid_moves(last_move: self.last_move)
-      %i[up down left right]
-    end
-
-    def blocked(pos, ignore: nil)
+    def fill_vmap
       points[0..-2].each.with_index do |x,i|
-        return :head if i.zero? && pos == x 
-        return :body if pos == x
+        next x.item = Battlesnake::Item[:head] if i.zero?
+        next if x.nil?
+        x.item = Battlesnake::Item[:body]
+        x.item.snake = self
       end
-      unless [ignore].include?(:possible_next_head)
-        return :possible_next_head if id != world.snake.id && head.around.include?(pos) 
+      return if world.snake.nil?
+      if me?
+        head.around.each do |x|
+          next if x.nil?
+          x.item = Battlesnake::Item[:possible_next_head]
+          x.item.snake = self
+        end
       end
-      return
+    end
+
+    def me?
+      id != world.snake.id
     end
 
     def head
-      points.first
+      @head ||= points.first
     end
 
-    def walk(to:, ignore: nil)
-      possibilities = []
-      snake_head = head
-      valid_moves.each do |move|
-        moves = [move]
-        pos = snake_head.move(move)
-        next if pos != to && world.blocked(pos, ignore: ignore)
-        points = [pos]
-        until (pos - to).magnitude.zero?
-          ret = valid_moves(last_move: moves.last).map do |m|
-            a = [m, pos.move(m)]
-            points << a[1]
-            a << (a[1]- to).magnitude
+    def walk(to:)
+      Route.new(from: head, to: to.dup, world: world)
+    end
+
+    def food_routes
+      @food_routes ||= world.foods.map do |f|
+        walk(to: f)
+      end
+    end
+
+    def preferred_route
+      foods = food_routes
+      dead = []
+      world.options[:deadlock].to_h.fetch(:retry, 3).times do
+        foods.each do |route|
+          if route.resolved? && route.deadlock?(targets: foods)
+            dead << route
+            route.dead!(route) 
           end
-          ret.sort_by!{|x| x[2]}
-          unless ret.first[1] == to
-            ret.delete_if do |x|
-              world.blocked(x[1], ignore: ignore) || points.count(x[1]) > 1
-            end
-          end
-          if ret.first.nil?
-            moves << :unresolved
-            possibilities << moves
-            break
-          end
-          moves << ret.first[0]
-          pos = ret.first[1]
         end
-        possibilities << moves if pos == to
       end
-      possibilities
+      a = foods.select(&:resolved?).reject(&:risky?).min_by(&:steps) ||
+        foods.select(&:resolved?).min_by(&:steps)
+      return a if a
+      foods.each do |route|
+        dead.map{|x| route.dead!(x) }
+        route.moves
+      end
+      foods.select(&:resolved?).reject(&:risky?).min_by(&:steps) ||
+        foods.select(&:resolved?).min_by(&:steps)
+        foods.max_by(&:steps)
     end
 
-    def move(ignore: nil)
-      targets = world.targets.map do |f|
-        case f
-        when Food 
-          walk(to: f.pos, ignore: ignore)
-        end
-      end.compact.flatten(1)
-      x = targets.reject{|x| x.last == :unresolved }
-      a = nil
-      if x.empty?
-        a = p(targets.sort_by{|f| f.size}.reverse)
-      else
-        a = p(x.sort_by{|f| f.size})
-      end
-      if a.empty? and ignore.nil?
-        return        move(ignore: :possible_next_head)
-      end
-      a.find{|x| b = world.blocked(head.move(x[0])); b.nil? || b == :food }&.first || a[0][0]
-    end
-
-    def update(health:, points:)
-      @health = health
-      @points_before = @points.dup
-      @points = points
+    def move
+      preferred_route&.turn || 'unkown'
     end
 
     def size

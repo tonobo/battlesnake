@@ -5,5 +5,6 @@ module Battlesnake
     def initialize(pos:, world:)
       @pos, @world = pos, world
     end
+
   end
 end

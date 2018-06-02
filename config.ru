@@ -3,14 +3,18 @@ require "json"
 require "battlesnake"
 require 'prometheus/middleware/collector'
 require 'prometheus/middleware/exporter'
+require 'ruby-prof'
 
 HEADS = %w[bendr dead fang pixel regular safe sand-worm shades smile tongue]
 TAILS = %w[block-bum curled fat-rattle freckled pixel regular round-bum skinny small-rattle]
 COLOR = Proc.new{ "#%06x" % (rand * 0xffffff) }
+MOVES = %i[up down right left]
 
 use Rack::Deflater
 use Prometheus::Middleware::Collector
 use Prometheus::Middleware::Exporter
+
+RUBY_PROF = ENV.fetch("ENABLE_PROF", false)
 
 class App < Roda
   route do |r|
@@ -20,13 +24,20 @@ class App < Roda
     end
     
     r.post "move" do
-      a = JSON.parse(request.body.read)
-      puts a.to_json
-      world = Battlesnake::World.new(id: a['id'], width: a['width'], height: a['height'])
-      world.update_food a.dig('food', 'data').to_a.map{|h| SnakePos[h['x']*-1, h['y']*-1]}
-      world.update_snakes a.dig('snakes', 'data')
-      world.update_snake a['you']
+      a = request.body.read
+      puts a
+      a = JSON.parse(a)
+      RubyProf.start if RUBY_PROF
+      world = Battlesnake::World.new(
+        options: { deadlock: { limit: 10, retry: 3 } }
+      )
+      world.update(a)
       a = world.snake.move.to_s
+      if RUBY_PROF
+        result = RubyProf.stop 
+        printer = RubyProf::FlatPrinter.new(result)
+        printer.print(STDOUT)
+      end
       {move: a}.to_json
     end
     
